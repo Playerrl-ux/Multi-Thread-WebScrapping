@@ -17,6 +17,7 @@ public class FileFormatter implements IFileFormatter{
         this.DIRECTORY = DIRECTORY;
     }
 
+    //adicionar loop para parar quando o record encontrado tiver ambos os atributos nulos
     @Override
     public Path format(List<String> lines, FileFormat format, URI uri) {
 

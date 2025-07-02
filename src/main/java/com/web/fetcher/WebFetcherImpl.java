@@ -17,13 +17,15 @@ public class WebFetcherImpl extends AbstractWebFetcher {
 
     private final ExecutorService executor;
     private final Map<Future<String>, URI> uriMap;
+    private final BlockingQueue<BodyAddress> queue;
     private final int N_REQUISITIONS = 4;
 
     public WebFetcherImpl(IURISupplier urlSupplier, FilterContext filterContext, IFileFormatter fileFormatter,
-                          ExecutorService executor) {
+                          ExecutorService executor, BlockingQueue<BodyAddress> queue) {
         super(urlSupplier, filterContext, fileFormatter);
         this.executor = executor;
         this.uriMap = new HashMap<>();
+        this.queue = queue;
     }
 
     @Override
@@ -40,6 +42,12 @@ public class WebFetcherImpl extends AbstractWebFetcher {
 
         }finally {
             executor.shutdown();
+            while(true){
+                try{
+                    queue.put(new BodyAddress(null, null));
+                    break;
+                }catch (InterruptedException ignored){}
+            }
         }
     }
 
@@ -69,11 +77,12 @@ public class WebFetcherImpl extends AbstractWebFetcher {
             try {
                 task = completionService.take();
                 String html = task.get();
-
                 var taskUri = uriMap.get(task);
-                List<String> filter = filterContext.filter(taskUri, html);
                 uriMap.remove(task);
-                fileFormatter.format(filter, FileFormat.TXT, taskUri);
+
+                queue.put(new BodyAddress(taskUri, html));
+//                List<String> filter = filterContext.filter(taskUri, html);
+//                fileFormatter.format(filter, FileFormat.TXT, taskUri);
 
                 var newTask = completionService.submit(new FetcherCallable(http, uri));
                 uriMap.put(newTask, uri);
@@ -86,8 +95,6 @@ public class WebFetcherImpl extends AbstractWebFetcher {
             } catch (URISyntaxException e) {
                 throw new RuntimeException(e);
             } catch (ExecutionException e) {
-                throw new RuntimeException(e);
-            } catch (ClassNotFoundException e) {
                 throw new RuntimeException(e);
             }
         }
@@ -102,10 +109,13 @@ public class WebFetcherImpl extends AbstractWebFetcher {
                 task = completionService.take();
                 URI remainingUri = uriMap.get(task);
                 String html = task.get();
-                List<String> filter = filterContext.filter(remainingUri, html);
-                fileFormatter.format(filter, FileFormat.TXT, remainingUri);
 
-            } catch (InterruptedException | ExecutionException | ClassNotFoundException e) {
+                queue.put(new BodyAddress(remainingUri, html));
+
+//                List<String> filter = filterContext.filter(remainingUri, html);
+//                fileFormatter.format(filter, FileFormat.TXT, remainingUri);
+
+            } catch (InterruptedException | ExecutionException e) {
                 throw new RuntimeException(e);
             }
         }
