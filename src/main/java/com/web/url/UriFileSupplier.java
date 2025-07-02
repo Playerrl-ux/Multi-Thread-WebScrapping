@@ -7,9 +7,11 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-public class UriFileSupplier implements IURISupplier {
+public class UriFileSupplier implements IURISupplier, AutoCloseable{
 
     private final BufferedReader reader;
+    private boolean isClosed = false;
+    public int read;
 
     private UriFileSupplier(BufferedReader reader) {
         this.reader = reader;
@@ -22,14 +24,23 @@ public class UriFileSupplier implements IURISupplier {
 
     @Override
     public URI next() throws IOException, URISyntaxException {
-        String line = reader.readLine();
-        if(line == null){
-            closeReader();
+        if(isClosed){
+            System.out.println("linhas lidas " + read);
             return null;
         }
+        String line = reader.readLine();
+        if(line == null){
+            System.out.println("linhas lidas " + read);
+            close();
+            isClosed = true;
+            return null;
+        }
+        read++;
         return new URI(line);
     }
-    private void closeReader(){
+
+    @Override
+    public void close() {
         if(reader != null){
             try{
                 reader.close();
