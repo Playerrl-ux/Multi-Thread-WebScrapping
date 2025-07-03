@@ -1,5 +1,6 @@
 package com.web.fetcher;
 
+import com.web.Initializer;
 import com.web.filter.context.FilterContext;
 import com.web.formatter.FileFormat;
 import com.web.formatter.IFileFormatter;
@@ -67,11 +68,15 @@ public class WebFetcherImpl extends AbstractWebFetcher {
 
             Future<String> task = null;
             try {
+                long start = System.nanoTime();
                 task = completionService.take();
+                System.out.println("tempo para retornar a requisicao: " + (System.nanoTime() - start) );
                 String html = task.get();
 
                 var taskUri = uriMap.get(task);
+
                 List<String> filter = filterContext.filter(taskUri, html);
+
                 uriMap.remove(task);
                 fileFormatter.format(filter, FileFormat.TXT, taskUri);
 
@@ -99,7 +104,9 @@ public class WebFetcherImpl extends AbstractWebFetcher {
             Future<String> task = null;
             try {
 
+                long start = System.nanoTime();
                 task = completionService.take();
+                System.out.println("tempo para retornar a requisicao: " + (System.nanoTime() - start) );
                 URI remainingUri = uriMap.get(task);
                 String html = task.get();
                 List<String> filter = filterContext.filter(remainingUri, html);
