@@ -18,13 +18,14 @@ public class WebFetcherImpl extends AbstractWebFetcher {
 
     private final ExecutorService executor;
     private final Map<Future<String>, URI> uriMap;
-    private final int N_REQUISITIONS = 4;
+    private final int REQUISITIONS;
 
     public WebFetcherImpl(IURISupplier urlSupplier, FilterContext filterContext, IFileFormatter fileFormatter,
-                          ExecutorService executor) {
+                          ExecutorService executor, int REQUISITIONS) {
         super(urlSupplier, filterContext, fileFormatter);
         this.executor = executor;
         this.uriMap = new HashMap<>();
+        this.REQUISITIONS = REQUISITIONS;
     }
 
     @Override
@@ -47,7 +48,7 @@ public class WebFetcherImpl extends AbstractWebFetcher {
     private URI fillCompletionService(CompletionService<String> completionService){
 
         URI uri = null;
-        for(int i=0; i<N_REQUISITIONS; i++) {
+        for(int i=0; i<REQUISITIONS; i++) {
             try {
                 uri = uriSupplier.next();
                 if(uri == null){
@@ -70,15 +71,20 @@ public class WebFetcherImpl extends AbstractWebFetcher {
             try {
                 long start = System.nanoTime();
                 task = completionService.take();
-                System.out.println("tempo para retornar a requisicao: " + (System.nanoTime() - start) );
+                System.out.println("tempo para retornar a requisicao: " + (System.nanoTime() - start) / 1_000_000);
                 String html = task.get();
 
                 var taskUri = uriMap.get(task);
 
+                long start2 = System.nanoTime();
                 List<String> filter = filterContext.filter(taskUri, html);
+                System.out.println("tempo para filtrar: " + (System.nanoTime() - start2) / 1_000_000);
 
                 uriMap.remove(task);
+
+                long start3 = System.nanoTime();
                 fileFormatter.format(filter, FileFormat.TXT, taskUri);
+                System.out.println("tempo para salvar o arquivo: " + (System.nanoTime() - start3) / 1_000_000);
 
                 var newTask = completionService.submit(new FetcherCallable(http, uri));
                 uriMap.put(newTask, uri);
@@ -106,11 +112,17 @@ public class WebFetcherImpl extends AbstractWebFetcher {
 
                 long start = System.nanoTime();
                 task = completionService.take();
-                System.out.println("tempo para retornar a requisicao: " + (System.nanoTime() - start) );
+                System.out.println("tempo para retornar a requisicao: " + (System.nanoTime() - start) / 1_000_000);
                 URI remainingUri = uriMap.get(task);
                 String html = task.get();
+
+                long start2 = System.nanoTime();
                 List<String> filter = filterContext.filter(remainingUri, html);
+                System.out.println("tempo para filtrar: " + (System.nanoTime() - start2) / 1_000_000);
+
+                long start3 = System.nanoTime();
                 fileFormatter.format(filter, FileFormat.TXT, remainingUri);
+                System.out.println("tempo para salvar o arquivo: " + (System.nanoTime() - start3) / 1_000_000);
 
             } catch (InterruptedException | ExecutionException | ClassNotFoundException e) {
                 throw new RuntimeException(e);

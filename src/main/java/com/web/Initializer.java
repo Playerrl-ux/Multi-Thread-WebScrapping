@@ -16,8 +16,15 @@ public class Initializer {
     private static final String DIRECTORY = "files";
 
     public static void init(String[] args) throws IOException {
-        if(args.length != 1){
-            System.out.println("O programa aceita exclusivamente um argumento");
+        if(args.length != 2){
+            System.out.println("O programa aceita exclusivamente dois argumentos");
+            System.exit(1);
+        }
+        int REQUISITIONS = 0;
+        try{
+            REQUISITIONS = Integer.parseInt(args[1]);
+        }catch (NumberFormatException ex){
+            System.out.println("O segundo arqumento deve ser um numero");
             System.exit(1);
         }
         System.out.println("Diretório de trabalho atual: " + System.getProperty("user.dir"));
@@ -27,7 +34,7 @@ public class Initializer {
             var fileFormatter = new FileFormatter(DIRECTORY);
             var filterContext = new FilterContext();
 
-            var fetcher = new WebFetcherImpl(uriSupplier, filterContext, fileFormatter, Executors.newSingleThreadExecutor());
+            var fetcher = new WebFetcherImpl(uriSupplier, filterContext, fileFormatter, Executors.newFixedThreadPool(REQUISITIONS), REQUISITIONS);
 
             fetcher.fetchTarget();
         }
