@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
-public class FilterContext {
+public class FilterContext implements Runnable{
 
     private final Map<String, Class<? extends IHtmlFilter>> clazzMap;
     private final Map<String, IHtmlFilter> filterMap;
@@ -27,7 +27,7 @@ public class FilterContext {
         filterMap = new HashMap<>();
     }
 
-    public void filter() {
+    public void run() {
         try{
             while(true) {
                 try {
