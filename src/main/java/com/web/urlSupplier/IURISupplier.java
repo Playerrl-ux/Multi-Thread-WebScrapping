@@ -1,11 +1,12 @@
-package com.web.url;
+package com.web.urlSupplier;
+
+import com.web.URIWrap;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 
 @FunctionalInterface
 public interface IURISupplier {
 
-    URI next() throws IOException, URISyntaxException;
+    URIWrap next() throws IOException, URISyntaxException;
 }
