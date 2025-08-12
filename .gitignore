@@ -4,6 +4,10 @@ target/
 !**/src/test/**/target/
 
 files/
+links.txt
+teste3.txt
+test_links.txt
+example.txt
 
 ### IntelliJ IDEA ###
 .idea/modules.xml
