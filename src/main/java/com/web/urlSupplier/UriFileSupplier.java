@@ -1,4 +1,6 @@
-package com.web.url;
+package com.web.urlSupplier;
+
+import com.web.URIWrap;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -7,7 +9,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-public class UriFileSupplier implements IURISupplier, AutoCloseable{
+public class UriFileSupplier implements IURISupplier, AutoCloseable {
 
     private final BufferedReader reader;
     private boolean isClosed = false;
@@ -23,29 +25,26 @@ public class UriFileSupplier implements IURISupplier, AutoCloseable{
     }
 
     @Override
-    public URI next() throws IOException, URISyntaxException {
-        if(isClosed){
-            System.out.println("linhas lidas " + read);
+    public URIWrap next() throws IOException, URISyntaxException {
+        if (isClosed) {
             return null;
         }
         String line = reader.readLine();
-        if(line == null){
-            System.out.println("linhas lidas " + read);
+        if (line == null) {
             close();
             isClosed = true;
             return null;
         }
         read++;
-        return new URI(line);
+        return new URIWrap(new URI(line), 0);
     }
 
     @Override
     public void close() {
-        if(reader != null){
-            try{
+        if (reader != null) {
+            try {
                 reader.close();
-            }catch (IOException ex){
-                System.out.println("Erro ao fechar o reader de uri supplier");
+            } catch (IOException ex) {
                 throw new RuntimeException(ex);
             }
         }
