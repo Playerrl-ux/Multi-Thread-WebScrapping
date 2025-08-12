@@ -1,6 +1,9 @@
 package com.web.formatter;
 
+import com.web.Pipe;
+import com.web.enums.URLType;
 import com.web.filter.context.FilterAddress;
+import com.web.utils.DirectoryManager;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,50 +13,62 @@ import java.nio.file.StandardOpenOption;
 import java.util.concurrent.BlockingQueue;
 
 
-public class FileFormatter implements Runnable{
+public class FileFormatter implements Runnable, Pipe<FilterAddress> {
 
-    private final String DIRECTORY;
     private final BlockingQueue<FilterAddress> queue;
 
-    public FileFormatter(String DIRECTORY, BlockingQueue<FilterAddress> queue) {
-        this.DIRECTORY = DIRECTORY;
+    public FileFormatter(BlockingQueue<FilterAddress> queue) {
         this.queue = queue;
     }
 
-    //adicionar loop para parar quando o record encontrado tiver ambos os atributos nulos
     @Override
     public void run() {
 
-        while(true){
-            try {
+        while (true) {
+            try (var urlWriter = Files.newBufferedWriter(DirectoryManager.getUrlPath(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+                 var errorWriter = Files.newBufferedWriter(DirectoryManager.getFailurePath(), StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
+
                 var filterAddress = queue.take();
-                if(filterAddress.filteredLines() == null || filterAddress.uri() == null){
+                if (filterAddress.filteredLines() == null || filterAddress.uri() == null) {
                     return;
                 }
 
                 String address = filterAddress.uri().toString();
-                if(address.charAt(address.length()-1) == '/'){
-                    address = address.substring(0, address.length()-1);
-                }
-                String[] parts = address.split("/");
+                Path path = returnFilePath(address);
 
-                Path path = Paths.get(DIRECTORY + "/" + parts[2] + "-" + parts[parts.length-1]);
-                try (var writer = Files.newBufferedWriter(path, StandardOpenOption.CREATE)) {
-                    for(String line: filterAddress.filteredLines()){
-                        writer.write(line);
-                        writer.newLine();
-                        writer.newLine();
+                if (filterAddress.type() == URLType.ERROR) {
+                    errorWriter.write(address);
+                } else {
+                    try (var successWriter = Files.newBufferedWriter(path, StandardOpenOption.CREATE,
+                            StandardOpenOption.APPEND)) {
+                        for (String line : filterAddress.filteredLines()) {
+                            successWriter.newLine();
+                            successWriter.write(line);
+                            successWriter.newLine();
+                        }
+                        urlWriter.write(address);
+                        urlWriter.newLine();
                     }
-                } catch (IOException e) {
-                    System.out.println("Falha ao tentar  salvar o arquivo");
-                    e.printStackTrace();
-
                 }
+            } catch (IOException ignored) {
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                Thread.currentThread().interrupt();
+                return;
             }
-
         }
 
+    }
+
+    private Path returnFilePath(String address) {
+        if (address.charAt(address.length() - 1) == '/') {
+            address = address.substring(0, address.length() - 1);
+        }
+        String[] parts = address.split("/");
+        return Paths.get(DirectoryManager.getSuccessPath() + "/" + parts[parts.length - 1]);
+    }
+
+    @Override
+    public void put(FilterAddress filterAddress) throws InterruptedException {
+        queue.put(filterAddress);
     }
 }
