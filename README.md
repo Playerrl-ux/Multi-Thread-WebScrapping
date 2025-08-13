@@ -96,3 +96,7 @@ After execution, the project will create the following files and directories in 
 
 - **error.txt**:  
   A log file containing all URLs that failed after all retry attempts.
+
+ # Important
+## Local Spring Boot Server for Testing
+This project is configured to run exclusively with a local Spring Boot server to ensure legal compliance. The URLs in the urls.txt file and the files used for testing, found in the repository at https://github.com/Playerrl-ux/mock-server/tree/master, are modified versions of those from the original websites. They contain random text to preserve potential copyrights. This setup allows for safe and controlled testing of the web scraping functionality without interacting with live websites.
